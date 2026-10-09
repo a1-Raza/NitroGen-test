@@ -42,8 +42,9 @@ bfloat16 autocast. There is no CPU fallback or device CLI flag.
 1. `predict()` applies the configured image processor.
 2. The vision encoder produces image tokens.
 3. `NitrogenTokenizer` assembles image and action tokens.
-4. The DiT flow-matching path performs denoising; the loader currently forces
-   eight inference timesteps.
+4. The DiT flow-matching path performs denoising; the default is eight
+   inference timesteps and the server's `--steps` option can reduce this
+   compute/latency tradeoff.
 5. The decoder maps continuous joystick values and button logits to actions.
 
 Malformed requests, preprocessing errors, CUDA failures, inference exceptions,
@@ -59,3 +60,5 @@ terminate the server. A client may then hang or receive a socket error.
 | `--old-layout` | false | Legacy layout option |
 | `--cfg` | `1.0` | Classifier-free guidance scale |
 | `--ctx` | `1` | Image context length |
+| `--steps` | `8` | Flow-matching inference steps |
+| `--verbose-inference` | off | Log per-request input shapes and timing |

@@ -13,9 +13,20 @@ and latency; it does not create planning or persistent memory.
 strengthen conditioning but can amplify unstable actions. Compare values on
 the same fixed clips.
 
-The loader currently forces eight inference timesteps. Changing this requires
-editing `nitrogen/inference_session.py`; more steps may improve quality but
-increase latency.
+The loader uses eight flow-matching inference timesteps by default. The server
+exposes this as `--steps`; for example:
+
+```bash
+python scripts/serve.py models/ng.pt --steps 4
+```
+
+Fewer steps reduce denoising compute approximately linearly, but may reduce
+action quality. Compare 8, 4, and 2 steps on the same gameplay clips before
+using a lower value. The default remains eight for compatibility.
+
+Per-request shape and timing logs are disabled by default because they are on
+the hot path. Use `--verbose-inference` when diagnosing a run rather than
+enabling it during latency measurements.
 
 `--port` changes only connectivity. `--old-layout` selects a legacy layout
 option and should only be used with a compatible checkpoint; verify decoded

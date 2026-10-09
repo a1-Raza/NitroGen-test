@@ -38,7 +38,7 @@ def summarize_parameters(module, name='model', depth=0, max_depth=3):
             summarize_parameters(child_module, child_name, depth + 1, max_depth)
 
 
-def load_model(checkpoint_path: str):
+def load_model(checkpoint_path: str, num_inference_timesteps: int | None = None):
     """Load model and args from checkpoint."""
     checkpoint = torch.load(checkpoint_path, map_location="cpu", weights_only=False)
     ckpt_config = CkptConfig.model_validate(checkpoint["ckpt_config"])
@@ -64,7 +64,9 @@ def load_model(checkpoint_path: str):
         tokenizer = NitrogenTokenizer(tokenizer_cfg)
         game_mapping = tokenizer.game_mapping
         model = NitroGen(config=model_cfg, game_mapping=game_mapping)
-        model.num_inference_timesteps = 8
+        model.num_inference_timesteps = (
+            8 if num_inference_timesteps is None else num_inference_timesteps
+        )
         action_downsample_ratio = 1
     else:
         raise ValueError(f"Unsupported model config type: {type(model_cfg)}")
@@ -95,7 +97,8 @@ class InferenceSession:
         old_layout: bool,
         cfg_scale: float,
         action_downsample_ratio: float,
-        context_length=None
+        context_length=None,
+        verbose=False,
     ):
         self.model = model
         self.tokenizer = tokenizer
@@ -107,6 +110,7 @@ class InferenceSession:
         self.cfg_scale = cfg_scale
         self.action_downsample_ratio = action_downsample_ratio
         self.ckpt_path = ckpt_path
+        self.verbose = verbose
 
         # Load modality config
         self.modality_config = self.ckpt_config.modality_cfg
@@ -120,9 +124,22 @@ class InferenceSession:
         self.action_buffer = deque(maxlen=self.max_buffer_size)
 
     @classmethod
-    def from_ckpt(cls, checkpoint_path: str, old_layout=False, cfg_scale=1.0, context_length=None):
+    def from_ckpt(
+        cls,
+        checkpoint_path: str,
+        old_layout=False,
+        cfg_scale=1.0,
+        context_length=None,
+        num_inference_timesteps=None,
+        verbose=False,
+    ):
         """Create an InferenceSession from a checkpoint."""
-        model, tokenizer, img_proc, ckpt_config, game_mapping, action_downsample_ratio = load_model(checkpoint_path)
+        if num_inference_timesteps is not None and num_inference_timesteps < 1:
+            raise ValueError("num_inference_timesteps must be at least 1")
+
+        model, tokenizer, img_proc, ckpt_config, game_mapping, action_downsample_ratio = load_model(
+            checkpoint_path, num_inference_timesteps=num_inference_timesteps
+        )
 
         if game_mapping is not None:
             # Ask user to pick a game from the list
@@ -155,7 +172,8 @@ class InferenceSession:
             old_layout,
             cfg_scale,
             action_downsample_ratio,
-            context_length
+            context_length,
+            verbose,
         )
 
     def info(self):
@@ -168,6 +186,8 @@ class InferenceSession:
             "action_interleaving": self.action_interleaving,
             "is_flowmatching": self.is_flowmatching,
             "action_downsample_ratio": self.action_downsample_ratio,
+            "num_inference_timesteps": self.model.num_inference_timesteps,
+            "verbose": self.verbose,
         }
 
     def reset(self):
@@ -192,14 +212,15 @@ class InferenceSession:
         else:
             action_tensors = {"buttons": None, "j_left": None, "j_right": None}
 
-        print("Running inference with the following inputs:")
-        print(f"- pixel_values: {pixel_values.shape}")
-        print("- action_tensors:")
-        for k, v in action_tensors.items():
-            if v is not None:
-                print(f"  - {k}: {v.shape}")
-            else:
-                print(f"  - {k}: None")
+        if self.verbose:
+            print("Running inference with the following inputs:")
+            print(f"- pixel_values: {pixel_values.shape}")
+            print("- action_tensors:")
+            for k, v in action_tensors.items():
+                if v is not None:
+                    print(f"  - {k}: {v.shape}")
+                else:
+                    print(f"  - {k}: None")
 
         # Run inference
         if self.is_flowmatching:
@@ -211,7 +232,8 @@ class InferenceSession:
         self.action_buffer.append(predicted_actions)
         
         inference_time = time.time() - start_time
-        print(f"Inference time: {inference_time:.3f}s")
+        if self.verbose:
+            print(f"Inference time: {inference_time:.3f}s")
 
         # Convert to list of action dicts
         n_actions = len(predicted_actions["buttons"])

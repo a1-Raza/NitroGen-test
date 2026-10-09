@@ -25,6 +25,7 @@ dist/
 
 # Local project output and downloaded model artifacts
 debug/
+out/
 models/*
 !models/.gitkeep
 
