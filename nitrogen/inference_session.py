@@ -64,7 +64,7 @@ def load_model(checkpoint_path: str):
         tokenizer = NitrogenTokenizer(tokenizer_cfg)
         game_mapping = tokenizer.game_mapping
         model = NitroGen(config=model_cfg, game_mapping=game_mapping)
-        # model.num_inference_timesteps = 16
+        model.num_inference_timesteps = 8
         action_downsample_ratio = 1
     else:
         raise ValueError(f"Unsupported model config type: {type(model_cfg)}")

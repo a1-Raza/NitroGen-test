@@ -52,6 +52,29 @@ python scripts/play.py --process '<game_executable_name>.exe'
 
 The `--process` parameter must be the exact executable name of the game you want to play. You can find it by right-clicking on the game process in Windows Task Manager (Ctrl+Shift+Esc), and selecting `Properties`. The process name should be in the `General` tab and end with `.exe`.
 
+## Documentation
+
+The quickstart above is intentionally minimal. The implementation has important
+runtime requirements and tuning controls that are documented in the repository
+guides:
+
+- [Documentation index](docs/README.md)
+- [Architecture and data flow](docs/architecture.md)
+- [Runtime and inference protocol](docs/runtime.md)
+- [Model and action contract](docs/model-and-actions.md)
+- [Setup and operations](docs/setup-and-operations.md)
+- [Tuning guide](docs/tuning.md)
+- [Limitations and failure modes](docs/limitations.md)
+- [Dataset and training context](docs/data-and-training-context.md)
+- [Development guide](docs/development.md)
+
+The current implementation requires a CUDA-capable inference machine, a
+Windows machine for game capture and virtual gamepad input, and a trusted
+local network/process boundary because the inference protocol uses
+unauthenticated ZeroMQ with Python pickle serialization. The released model is
+reactive: it uses the current frame by default and does not provide planning,
+memory, or episode management.
+
 # Paper and Citation
 
 If you find our work useful, please consider citing us!

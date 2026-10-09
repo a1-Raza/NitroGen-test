@@ -183,7 +183,7 @@ class NitroGen(torch.nn.Module):
 
         if "siglip" in config.vision_encoder_name:
             model = SiglipVisionModel.from_pretrained(config.vision_encoder_name)
-            self.vision_encoder = model.vision_model
+            self.vision_encoder = getattr(model, "vision_model", model)
             self.vision_encoder_type = "siglip"
         else:
             self.vision_encoder = AutoModel.from_pretrained(config.vision_encoder_name)
